@@ -1,0 +1,31 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+**/.env.local
+**/*credentials*.json
+**/*secret*.json
+# Never publish original building database exports
+*backup*.sql
+*.dump
+*.sql.gz
+# Python and tests
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.venv/
+venv/
+dtvenv/
+# Frontend
+frontend/node_modules/
+frontend/dist/
+# Development/runtime files
+.DS_Store
+*.log
+*.zip
+*.rar
+*.tar
+*.tar.gz

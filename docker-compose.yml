@@ -1,0 +1,78 @@
+# Development-only stack bound to localhost; not a production deployment.
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${DB_NAME:-dt_softwarex}
+      POSTGRES_USER: ${DB_USER:-dt_app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Run python3 scripts/create_env.py}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL','pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [local]
+  mosquitto:
+    image: eclipse-mosquitto:2
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    ports: ['127.0.0.1:1883:1883']
+    networks: [local]
+  seed:
+    build: ./backend
+    command: ['python','-m','demo.seed']
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: '5432'
+    depends_on:
+      db: {condition: service_healthy}
+    restart: 'no'
+    networks: [local]
+  backend:
+    build:
+      context: ./backend
+      args:
+        INSTALL_ML: "${INSTALL_ML:-0}"
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: '5432'
+      MQTT_BROKER: mosquitto
+      MQTT_PORT: '1883'
+      ENABLE_MQTT: '1'
+      CORS_ORIGINS: http://localhost:7779
+    ports: ['127.0.0.1:7781:7781']
+    depends_on:
+      seed: {condition: service_completed_successfully}
+      mosquitto: {condition: service_started}
+    networks: [local]
+  publisher:
+    build: ./backend
+    command: ['python','-m','demo.publisher']
+    environment:
+      MQTT_BROKER: mosquitto
+      MQTT_PORT: '1883'
+    depends_on:
+      mosquitto: {condition: service_started}
+      backend: {condition: service_started}
+    networks: [local]
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:7781/api/v1}
+      VITE_OWM_KEY: ${VITE_OWM_KEY:-}
+      VITE_WEATHER_LAT: ${VITE_WEATHER_LAT:-}
+      VITE_WEATHER_LON: ${VITE_WEATHER_LON:-}
+    ports: ['127.0.0.1:7779:7779']
+    depends_on:
+      backend: {condition: service_started}
+    networks: [local]
+volumes:
+  dbdata:
+networks:
+  local:
+    driver: bridge

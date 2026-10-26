@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: 'If you use this software, cite the final SoftwareX paper and the original thesis when published.'
+title: 'BIM-DT: A Web-Based Digital Twin Platform for Building Monitoring'
+type: software
+version: 0.1.0
+license: MIT
+repository-code: https://github.com/spartakos87/dt_softwarex
+authors:
+  - family-names: Pittakis
+    given-names: Georgios
